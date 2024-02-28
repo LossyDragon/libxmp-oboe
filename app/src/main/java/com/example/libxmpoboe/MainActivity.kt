@@ -52,10 +52,13 @@ class MainActivity : ComponentActivity() {
 
     private var isLooping: Boolean = false
 
+    // TODO: Tick should stop when we finished, maybe clean up the loaded module too.
     private val handler: Handler = Handler()
     private val runnable = object : Runnable {
+        // This should be done in a service.
         override fun run() {
-            Xmp.tick(isLooping)
+            val res = Xmp.tick(isLooping)
+            Log.d(this::class.java.simpleName, "Tick $res")
             handler.postDelayed(this, 5)
         }
     }

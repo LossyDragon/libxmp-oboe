@@ -126,7 +126,7 @@ bool Engine::tick(bool shouldLoop) {
         return false;
     }
 
-    if (!isPaused) {
+    if (!isPaused && !moduleEnded) {
         int res = xmp_play_frame(ctx);
         if (res == 0) {
             xmp_get_frame_info(ctx, &fi);
@@ -141,17 +141,16 @@ bool Engine::tick(bool shouldLoop) {
 
             audioBuffer->write(static_cast<float *>(fi.buffer), fi.buffer_size / sizeof(float));
 
-            if (fi.loop_count > 0 && shouldLoop) {
-                moduleEnded = true;
-                return true;
-            }
+            LOGD("%3d/%3d %3d/%3d | Loop: %d | Should Loop: %d\r",
+                 fi.pos, mi.mod->len, fi.row, fi.num_rows, fi.loop_count, shouldLoop);
 
-            LOGD("%3d/%3d %3d/%3d\r", fi.pos, mi.mod->len, fi.row, fi.num_rows);
+            // TODO: If we 'shouldLoop' when we already looped more than once, honor it before finishing
+            if (fi.loop_count > 0 && !shouldLoop) {
+                moduleEnded = true;
+            }
         } else {
             LOGD("Couldn't play frame in ::tick");
         }
-
-        return true;
     }
 
     if (moduleEnded && !audioBuffer->isEmpty()) {
@@ -160,6 +159,8 @@ bool Engine::tick(bool shouldLoop) {
             LOGD("Waiting...");
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
+
+        // TODO: notify that we have finished playing, somehow.
     }
 
     return true;
