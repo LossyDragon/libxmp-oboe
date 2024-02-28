@@ -1,13 +1,14 @@
-//
-// Created by IT on 2/27/2024.
-//
-
 #include <oboe/Oboe.h>
 #include <xmp.h>
 #include "CircularBuffer.h"
 
 #ifndef OBOEDEMO_ENGINE_H
 #define OBOEDEMO_ENGINE_H
+
+
+#define LOG_TAG "Xmp Test"
+
+#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 using namespace oboe;
 

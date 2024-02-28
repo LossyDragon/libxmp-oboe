@@ -6,10 +6,6 @@
 #include <iostream>
 #include <thread>
 
-#define LOG_TAG "Xmp Test"
-
-#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-
 using namespace oboe;
 
 void Engine::start() {
@@ -64,14 +60,19 @@ void Engine::loadAndPlay(int fd) {
             size_t availableSpace = bufferCapacity - audioBuffer->available();
 
             while (availableSpace < fi.buffer_size / sizeof(float)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Simple wait
+                std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simple wait
                 availableSpace = bufferCapacity - audioBuffer->available(); // Update available space
             }
 
             audioBuffer->write(static_cast<float*>(fi.buffer), fi.buffer_size / sizeof(float));
 
-            if (fi.loop_count > 0)
+            if (fi.loop_count > 0) {
+                while(!audioBuffer->isEmpty()) {
+                    // Finish the buffer
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
                 break;
+            }
 
             LOGD("%3d/%3d %3d/%3d\r", fi.pos, mi.mod->len, fi.row, fi.num_rows);
         }
