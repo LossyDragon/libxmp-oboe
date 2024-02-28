@@ -1,4 +1,4 @@
-package com.example.libxmp_oboe.ui.theme
+package com.example.libxmpoboe.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,23 +1,33 @@
+@file:Suppress("UnstableApiUsage")
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
 }
 
 android {
-    namespace = "com.example.libxmp_oboe"
+    namespace = "com.example.libxmpoboe"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.libxmp_oboe"
+        applicationId = "com.example.libxmpoboe"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        ndk.abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        externalNativeBuild.cmake {
+            arguments.add("-DANDROID_STL=c++_shared")
+        }
+    }
+
+    externalNativeBuild.cmake {
+        path = file("src/main/jni/CMakeLists.txt")
     }
 
     buildTypes {
@@ -38,6 +48,7 @@ android {
     }
     buildFeatures {
         compose = true
+        prefab = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -50,7 +61,7 @@ android {
 }
 
 dependencies {
-
+    implementation(libs.oboe)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
