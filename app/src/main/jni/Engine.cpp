@@ -1,9 +1,7 @@
-#include <sys/stat.h>
 #include "Engine.h"
 #include "oboe/Oboe.h"
-#include <android/log.h>
 #include <chrono>
-#include <iostream>
+#include <sys/stat.h>
 #include <thread>
 
 // https://github.com/libxmp/libxmp/blob/master/docs/libxmp.rst
@@ -11,13 +9,17 @@
 
 using namespace oboe;
 
-// audioBuffer->flush(); // TODO
-
 // Initialize the oboe engine and create a context for libxmp
-bool Engine::initPlayer() {
+bool Engine::initPlayer(int sampleRate) {
+
+    if (sampleRate != 8000 && sampleRate != 22050 && sampleRate != 44100 && sampleRate != 48000) {
+        LOGD("%d is not a valid sample rate", sampleRate);
+        return false;
+    }
+
     AudioStreamBuilder builder;
     builder.setFormat(AudioFormat::I16)
-            ->setSampleRate(48000)
+            ->setSampleRate(sampleRate)
             ->setChannelCount(ChannelCount::Stereo)
             ->setPerformanceMode(PerformanceMode::LowLatency)
             ->setSharingMode(SharingMode::Exclusive)
@@ -43,9 +45,11 @@ bool Engine::initPlayer() {
     }
 
     if (audioBuffer != nullptr) {
-        delete audioBuffer;
+        audioBuffer.reset(nullptr);
     }
-    audioBuffer = new CircularBuffer(48000);
+    // https://github.com/google/oboe/discussions/1258
+    uint32_t capacityInFrames = sampleRate / 2;
+    audioBuffer = std::make_unique<oboe::FifoBuffer>(stream->getBytesPerFrame(), capacityInFrames);
 
     ctx = xmp_create_context();
 
@@ -90,7 +94,6 @@ bool Engine::loadModule(int fd) {
         return false;
     }
 
-    audioBuffer->flush();
     moduleEnded = false;
     sequence = 0;
     xmp_get_module_info(ctx, &mi);
@@ -131,12 +134,13 @@ bool Engine::tick(bool shouldLoop) {
         if (res == 0) {
             xmp_get_frame_info(ctx, &fi);
 
-            size_t bufferCapacity = audioBuffer->capacity;
-            size_t availableSpace = bufferCapacity - audioBuffer->available();
+            size_t bufferCapacity = audioBuffer->getBufferCapacityInFrames();
+            size_t availableSpace = bufferCapacity - audioBuffer->getFullFramesAvailable();
 
             while (availableSpace < fi.buffer_size / sizeof(float)) {
+                LOGD("Waiting for buffer space...");
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                availableSpace = bufferCapacity - audioBuffer->available();
+                availableSpace = bufferCapacity - audioBuffer->getFullFramesAvailable();
             }
 
             audioBuffer->write(static_cast<float *>(fi.buffer), fi.buffer_size / sizeof(float));
@@ -153,13 +157,12 @@ bool Engine::tick(bool shouldLoop) {
         }
     }
 
-    if (moduleEnded && !audioBuffer->isEmpty()) {
-        while (!audioBuffer->isEmpty()) {
-            // Module has ended, just wait for the buffer to empty
+    if (moduleEnded) {
+        // Module has ended, just wait for the buffer to empty
+        while (audioBuffer->getFullFramesAvailable() > 0) {
             LOGD("Waiting...");
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
-
         // TODO: notify that we have finished playing, somehow.
     }
 

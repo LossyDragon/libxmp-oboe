@@ -8,7 +8,7 @@ JNIEXPORT jboolean JNICALL
 Java_com_example_libxmpoboe_Xmp_initPlayer(JNIEnv *env, jobject thiz) {
     (void) env;
     (void) thiz;
-    return engine.initPlayer();
+    return engine.initPlayer(48000);
 }
 extern "C"
 JNIEXPORT void JNICALL

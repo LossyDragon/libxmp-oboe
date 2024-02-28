@@ -4,7 +4,7 @@ project(xmp-jni LANGUAGES C CXX)
 # Add libxmp's CMakeLists.txt
 add_subdirectory(libxmp)
 
-add_library(xmp-jni SHARED xmp-jni.cpp Engine.cpp CircularBuffer.cpp)
+add_library(xmp-jni SHARED xmp-jni.cpp Engine.cpp)
 
 find_package (oboe REQUIRED CONFIG)
 

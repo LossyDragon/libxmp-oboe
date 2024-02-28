@@ -1,13 +1,11 @@
 #include <oboe/Oboe.h>
 #include <xmp.h>
-#include "CircularBuffer.h"
+#include <android/log.h>
 
 #ifndef OBOEDEMO_ENGINE_H
 #define OBOEDEMO_ENGINE_H
 
-
 #define LOG_TAG "Xmp Test"
-
 #define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 using namespace oboe;
@@ -18,10 +16,8 @@ public:
     Engine() : audioBuffer(nullptr) {};
 
     ~Engine() {
-        delete audioBuffer;
+        audioBuffer.release();
         delete stream;
-
-
     };
 
     DataCallbackResult
@@ -51,7 +47,7 @@ public:
 
     void endPlayer();
 
-    bool initPlayer();
+    bool initPlayer(int sampleRate);
 
     bool loadModule(int fd);
 
@@ -73,7 +69,7 @@ public:
 
 private:
     AudioStream *stream;
-    CircularBuffer *audioBuffer;
+    std::unique_ptr<oboe::FifoBuffer> audioBuffer;
 
     bool isInit;    // Is Oboe and Xmp created?
     bool isLoaded;  // Is libxmp in a loaded state?

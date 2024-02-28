@@ -61,7 +61,6 @@ android {
 }
 
 dependencies {
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     debugImplementation(libs.androidx.ui.test.manifest)
     debugImplementation(libs.androidx.ui.tooling)
 
@@ -74,5 +73,4 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.oboe)
     implementation(platform(libs.androidx.compose.bom))
-    testImplementation(libs.junit)
 }
