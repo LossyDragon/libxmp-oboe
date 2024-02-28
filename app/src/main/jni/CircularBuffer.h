@@ -9,10 +9,13 @@ public:
             : buffer(capacity), head(0), tail(0), size(0), capacity(capacity) {}
 
     // Add data to the buffer
-    bool write(const float* data, size_t numSamples);
+    bool write(const float *data, size_t numSamples);
 
     // Read data from the buffer
-    size_t read(float* data, size_t numSamples);
+    size_t read(float *data, size_t numSamples);
+
+    // Flush the buffer
+    void flush();
 
     // Check if the buffer is empty
     bool isEmpty() const {
@@ -30,5 +33,6 @@ private:
     std::mutex mutex;
     std::condition_variable dataAvailable;
 };
+
 
 #endif //OBOEDEMO_CIRCULARBUFFER_H

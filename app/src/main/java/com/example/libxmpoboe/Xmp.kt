@@ -9,21 +9,38 @@ object Xmp {
         System.loadLibrary("xmp-jni")
     }
 
-    private external fun startXmp(fd: Int)
+    // TODO handle informational functions that may return null
 
-    external fun stopPlaying()
+    external fun deInitPlayer()
+    external fun endPlayer()
+    external fun getComment(): String
+    external fun getInfo(values: IntArray?)
+    external fun getInstruments(): Array<String>?
+    external fun getModVars(vars: IntArray?)
+    external fun getModuleName(): String
+    external fun getModuleType(): String
+    external fun getSupportedFormats(): Array<String>?
+    external fun getTime(): Int
+    external fun getVersion(): String
+    external fun initPlayer(): Boolean
+    external fun pause(isPaused: Boolean): Boolean
+    external fun releaseModule()
+    external fun restartModule()
+    external fun setSequence(seq: Int): Boolean
+    external fun startModule(): Boolean
+    external fun stopModule()
+    external fun tick(shouldLoop: Boolean): Boolean
 
-    external fun playOrPause()
+    private external fun loadModule(fd: Int): Boolean
 
-    fun loadFromFd(uri: Uri) {
+    fun loadFromFd(uri: Uri): Boolean {
         val context = App.instance!!.applicationContext
         val pfd = context.contentResolver.openFileDescriptor(uri, "r")
         if (pfd != null) {
             val fd = pfd.detachFd()
             pfd.close()
 
-            startXmp(fd)
-            return
+            return loadModule(fd)
         }
 
         throw RuntimeException("Failed to load from fd")

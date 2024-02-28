@@ -36,3 +36,12 @@ size_t CircularBuffer::read(float *data, size_t numSamples) {
     return samplesRead;
 }
 
+
+void CircularBuffer::flush() {
+    std::lock_guard<std::mutex> lock(mutex);
+    head = 0;
+    tail = 0;
+    size = 0;
+    std::fill(buffer.begin(), buffer.end(), 0.0f);
+    dataAvailable.notify_all();
+}
