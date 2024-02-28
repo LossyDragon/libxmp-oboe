@@ -6,6 +6,9 @@
 #include <iostream>
 #include <thread>
 
+// https://github.com/libxmp/libxmp/blob/master/docs/libxmp.rst
+// https://github.com/google/oboe
+
 using namespace oboe;
 
 void Engine::start() {
@@ -52,29 +55,39 @@ void Engine::loadAndPlay(int fd) {
         xmp_get_module_info(ctx, &mi);
         LOGD("%s (%s)\n", mi.mod->name, mi.mod->type);
 
-        while (xmp_play_frame(ctx) == 0) {
-            xmp_get_frame_info(ctx, &fi);
+        isPlaying = xmp_get_player(ctx, XMP_STATE_PLAYING);
 
-            // Check buffer fullness; assume total capacity is known
-            size_t bufferCapacity = audioBuffer->capacity; // Assume you have a way to get this
-            size_t availableSpace = bufferCapacity - audioBuffer->available();
+        moduleEnded = false;
+        while (!moduleEnded || !audioBuffer->isEmpty()) {
+            if (!moduleEnded && isPlaying) {
+                if (xmp_play_frame(ctx) == 0) {
+                    xmp_get_frame_info(ctx, &fi);
 
-            while (availableSpace < fi.buffer_size / sizeof(float)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simple wait
-                availableSpace = bufferCapacity - audioBuffer->available(); // Update available space
-            }
+                    size_t bufferCapacity = audioBuffer->capacity; // Assume you have a way to get this
+                    size_t availableSpace = bufferCapacity - audioBuffer->available();
 
-            audioBuffer->write(static_cast<float*>(fi.buffer), fi.buffer_size / sizeof(float));
+                    while (availableSpace < fi.buffer_size / sizeof(float)) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                        availableSpace = bufferCapacity - audioBuffer->available();
+                    }
 
-            if (fi.loop_count > 0) {
-                while(!audioBuffer->isEmpty()) {
-                    // Finish the buffer
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    audioBuffer->write(static_cast<float *>(fi.buffer),
+                                       fi.buffer_size / sizeof(float));
+
+                    if (fi.loop_count > 0) {
+                        moduleEnded = true;
+                    }
+
+                    LOGD("%3d/%3d %3d/%3d\r", fi.pos, mi.mod->len, fi.row, fi.num_rows);
+                } else {
+                    LOGD("Uh ohhh!");
+                    break;
                 }
-                break;
+            } else {
+                // Module has ended, just wait for the buffer to empty
+                LOGD("Waiting...");
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
-
-            LOGD("%3d/%3d %3d/%3d\r", fi.pos, mi.mod->len, fi.row, fi.num_rows);
         }
 
         xmp_end_player(ctx);
@@ -84,6 +97,15 @@ void Engine::loadAndPlay(int fd) {
     Engine::stop();
 }
 
+void Engine::stopPlaying() {
+    xmp_release_module(ctx);
+    xmp_stop_module(ctx);
+}
+
+void Engine::playOrPause() {
+    isPlaying = !isPlaying;
+}
+
 void Engine::stop() {
     stream->requestStop();
     stream->close();
@@ -91,18 +113,17 @@ void Engine::stop() {
 
 DataCallbackResult
 Engine::onAudioReady(AudioStream *audioStream, void *audioData, int32_t numFrames) {
-    if (audioBuffer) { // Check if audioBuffer has been initialized
-        float* outputData = static_cast<float*>(audioData);
+    if (audioBuffer && isPlaying) {
+        float *outputData = static_cast<float *>(audioData);
         size_t framesRead = audioBuffer->read(outputData, static_cast<size_t>(numFrames));
 
         if (framesRead < numFrames) {
             std::fill(outputData + framesRead, outputData + numFrames, 0.0f);
         }
-
-        return DataCallbackResult::Continue;
     } else {
-        // Handle the case where audioBuffer is not initialized, possibly by outputting silence
+        // Handle the case where audioBuffer is not initialized or paused.
         memset(audioData, 0, sizeof(float) * numFrames);
-        return DataCallbackResult::Continue;
     }
+
+    return DataCallbackResult::Continue;
 }

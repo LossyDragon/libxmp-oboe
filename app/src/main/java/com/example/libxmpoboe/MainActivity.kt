@@ -9,8 +9,11 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -19,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.libxmpoboe.ui.theme.AppTheme
 import kotlin.concurrent.thread
 
@@ -35,6 +39,7 @@ class MainActivity : ComponentActivity() {
 
         thread { // Stop the UI from hanging
             savedUri?.let {
+
                 Xmp.loadFromFd(it)
             }
         }
@@ -43,16 +48,35 @@ class MainActivity : ComponentActivity() {
             AppTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Button(onClick = {
-                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                                addCategory(Intent.CATEGORY_OPENABLE)
-                                type = "*/*"
-                            }
-                            startActivityForResult(intent, 669)
-                        }) {
-                            Text(text = "Choose File")
-                        }
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                                    addCategory(Intent.CATEGORY_OPENABLE)
+                                    type = "*/*"
+                                }
+                                startActivityForResult(intent, 669)
+                            },
+                            content = { Text(text = "Choose File") }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = { Xmp.stopPlaying() },
+                            content = { Text(text = "Stop Playing") }
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = { Xmp.playOrPause() },
+                            content = { Text(text = "Play or Pause") }
+                        )
                     }
                 }
             }
@@ -77,7 +101,9 @@ class MainActivity : ComponentActivity() {
                     apply()
                 }
 
-                thread { Xmp.loadFromFd(uri) }
+                thread {
+                    Xmp.loadFromFd(uri)
+                }
             }
         }
     }

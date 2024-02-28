@@ -11,6 +11,10 @@ object Xmp {
 
     private external fun startXmp(fd: Int)
 
+    external fun stopPlaying()
+
+    external fun playOrPause()
+
     fun loadFromFd(uri: Uri) {
         val context = App.instance!!.applicationContext
         val pfd = context.contentResolver.openFileDescriptor(uri, "r")

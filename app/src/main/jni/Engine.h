@@ -28,8 +28,15 @@ public:
 
     void loadAndPlay(int fd);
 
+    void stopPlaying();
+
+    void playOrPause();
+
     AudioStream *stream;
-    CircularBuffer* audioBuffer;
+    CircularBuffer *audioBuffer;
+
+    bool isPlaying;
+    bool moduleEnded;
 
     struct xmp_frame_info fi;
     struct xmp_module_info mi;
