@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
         // This should be done in a service.
         override fun run() {
             val res = Xmp.tick(isLooping)
-            // Log.d(this::class.java.simpleName, "Tick $res")
+            Log.d(this::class.java.simpleName, "Tick $res")
             handler.postDelayed(this, 10)
         }
     }

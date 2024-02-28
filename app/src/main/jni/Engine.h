@@ -8,6 +8,12 @@
 #define LOG_TAG "Xmp Test"
 #define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
+enum class TickResult : int32_t {
+    Continue = 0,
+    Fail = 1,
+    End = 2,
+};
+
 using namespace oboe;
 
 class Engine : public AudioStreamCallback {
@@ -25,7 +31,7 @@ public:
 
     bool setSequence(int seq);
 
-    bool tick(bool shouldLoop);
+    TickResult tick(bool shouldLoop);
 
     char *getComment();
 

@@ -117,16 +117,16 @@ bool Engine::startModule(int rate, int format) {
     return isPlaying;
 }
 
-bool Engine::tick(bool shouldLoop) {
+TickResult Engine::tick(bool shouldLoop) {
 
     if (!isLoaded) {
         LOGD("Not loaded in ::tick");
-        return false;
+        return TickResult::Fail;
     }
 
     if (!isPlaying) {
         LOGD("Not playing in ::tick");
-        return false;
+        return TickResult::Fail;
     }
 
     if (!isPaused && !moduleEnded) {
@@ -145,8 +145,8 @@ bool Engine::tick(bool shouldLoop) {
 
             audioBuffer->write(static_cast<float *>(fi.buffer), fi.buffer_size / sizeof(float));
 
-            LOGD("%3d/%3d %3d/%3d | Loop: %d | Should Loop: %d\r",
-                 fi.pos, mi.mod->len, fi.row, fi.num_rows, fi.loop_count, shouldLoop);
+            //LOGD("%3d/%3d %3d/%3d | Loop: %d | Should Loop: %d\r",
+            //     fi.pos, mi.mod->len, fi.row, fi.num_rows, fi.loop_count, shouldLoop);
 
             // TODO: If we 'shouldLoop' when we already looped more than once, honor it before finishing
             if (fi.loop_count > 0 && !shouldLoop) {
@@ -164,9 +164,10 @@ bool Engine::tick(bool shouldLoop) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
         // TODO: notify that we have finished playing, somehow.
+        return TickResult::End;
     }
 
-    return true;
+    return TickResult::Continue;
 }
 
 void Engine::stopModule() {
@@ -183,11 +184,7 @@ char *Engine::getModuleType() {
 
 char *Engine::getComment() {
     if (mi.comment) {
-        char *comment = strdup(mi.comment); // Free?
-        if (!comment) {
-            return NULL;
-        }
-        return comment;
+        return mi.comment;
     } else {
         return NULL;
     }

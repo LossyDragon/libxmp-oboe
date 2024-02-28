@@ -29,7 +29,7 @@ object Xmp {
     external fun setSequence(seq: Int): Boolean
     external fun startModule(): Boolean
     external fun stopModule()
-    external fun tick(shouldLoop: Boolean): Boolean
+    external fun tick(shouldLoop: Boolean): Int
 
     private external fun loadModule(fd: Int): Boolean
 

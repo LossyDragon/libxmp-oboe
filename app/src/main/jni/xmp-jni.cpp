@@ -95,7 +95,17 @@ extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_example_libxmpoboe_Xmp_getComment(JNIEnv *env, jobject thiz) {
     (void) thiz;
-    return env->NewStringUTF(engine.getComment());
+
+    char *comment = strdup(engine.getComment());
+    if (!comment) {
+        return NULL;
+    }
+
+    jstring string = env->NewStringUTF(comment);
+
+    free(comment);
+
+    return string;
 }
 
 extern "C"
@@ -132,6 +142,8 @@ Java_com_example_libxmpoboe_Xmp_getInstruments(JNIEnv *env, jobject thiz) {
         env->DeleteLocalRef(s);
     }
 
+    free(ins);
+
     return stringArray;
 }
 
@@ -159,6 +171,8 @@ Java_com_example_libxmpoboe_Xmp_getInfo(JNIEnv *env, jobject thiz, jintArray val
     v[4] = frameInfo->frame;
     v[5] = frameInfo->speed;
     v[6] = frameInfo->bpm;
+
+    free(frameInfo);
 
     env->SetIntArrayRegion(values, 0, 7, v);
 }
@@ -226,9 +240,9 @@ Java_com_example_libxmpoboe_Xmp_endPlayer(JNIEnv *env, jobject thiz) {
 }
 
 extern "C"
-JNIEXPORT jboolean JNICALL
+JNIEXPORT jint JNICALL
 Java_com_example_libxmpoboe_Xmp_tick(JNIEnv *env, jobject thiz, jboolean should_loop) {
     (void) thiz;
     (void) env;
-    return engine.tick(should_loop);
+    return static_cast<jint>(engine.tick(should_loop));
 }
