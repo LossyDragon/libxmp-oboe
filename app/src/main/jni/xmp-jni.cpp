@@ -51,7 +51,15 @@ extern "C"
 JNIEXPORT jstring JNICALL
 Java_com_example_libxmpoboe_Xmp_getModuleType(JNIEnv *env, jobject thiz) {
     (void) thiz;
-    return env->NewStringUTF(engine.getModuleType());
+
+    const char *type = engine.getModuleType();
+    if (!type) {
+        return NULL;
+    }
+
+    jstring modType = env->NewStringUTF(type);
+
+    return modType;
 }
 
 extern "C"
@@ -96,13 +104,13 @@ JNIEXPORT jstring JNICALL
 Java_com_example_libxmpoboe_Xmp_getComment(JNIEnv *env, jobject thiz) {
     (void) thiz;
 
-    char *comment = strdup(engine.getComment());
-    if (!comment) {
+    const char *modComment = engine.getComment();
+    if (!modComment) {
         return NULL;
     }
 
+    char *comment = strdup(modComment);
     jstring string = env->NewStringUTF(comment);
-
     free(comment);
 
     return string;
@@ -124,16 +132,16 @@ Java_com_example_libxmpoboe_Xmp_getInstruments(JNIEnv *env, jobject thiz) {
     xmp_instrument *ins = engine.getInstruments();
 
     if (!numIns || !ins) {
-        return NULL;
+        goto err;
     }
 
     stringClass = env->FindClass("java/lang/String");
     if (stringClass == NULL)
-        return NULL;
+        goto err;
 
     stringArray = env->NewObjectArray(numIns, stringClass, NULL);
     if (stringArray == NULL)
-        return NULL;
+        goto err;
 
     for (i = 0; i < numIns; i++) {
         snprintf(buf, 80, "%02X %s", i + 1, ins[i].name);
@@ -145,6 +153,10 @@ Java_com_example_libxmpoboe_Xmp_getInstruments(JNIEnv *env, jobject thiz) {
     free(ins);
 
     return stringArray;
+
+    err:
+    free(ins);
+    return NULL;
 }
 
 extern "C"
@@ -171,8 +183,6 @@ Java_com_example_libxmpoboe_Xmp_getInfo(JNIEnv *env, jobject thiz, jintArray val
     v[4] = frameInfo->frame;
     v[5] = frameInfo->speed;
     v[6] = frameInfo->bpm;
-
-    free(frameInfo);
 
     env->SetIntArrayRegion(values, 0, 7, v);
 }

@@ -43,22 +43,29 @@ import kotlin.concurrent.thread
 class MainActivity : ComponentActivity() {
     private lateinit var sharedPref: SharedPreferences
 
-    private fun toast(message: String) {
+    private fun toast(message: String?) {
         runOnUiThread {
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            Log.d(this::class.java.simpleName, message)
+            Toast.makeText(this, message.orEmpty(), Toast.LENGTH_SHORT).show()
+            Log.d(this::class.java.simpleName, message.orEmpty())
         }
     }
 
     private var isLooping: Boolean = false
 
-    // TODO: Tick should stop when we finished, maybe clean up the loaded module too.
     private val handler: Handler = Handler()
     private val runnable = object : Runnable {
         // This should be done in a service.
         override fun run() {
             val res = Xmp.tick(isLooping)
-            Log.d(this::class.java.simpleName, "Tick $res")
+            //Log.d(this::class.java.simpleName, "Tick $res")
+
+            if (res == 2){
+                Xmp.endPlayer()
+                Xmp.releaseModule()
+                Xmp.deInitPlayer()
+                return
+            }
+
             handler.postDelayed(this, 10)
         }
     }
@@ -78,7 +85,6 @@ class MainActivity : ComponentActivity() {
                     LazyVerticalGrid(
                         modifier = Modifier.fillMaxSize(),
                         columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(vertical = 32.dp)
                     ) {
                         item {
                             Button(
@@ -226,10 +232,9 @@ class MainActivity : ComponentActivity() {
                                     contentColor = Color.White
                                 ),
                                 onClick = {
-                                    Xmp.getInstruments()
-                                        ?.also {
-                                            toast(it.toList().toString())
-                                        }
+                                    Xmp.getInstruments().also {
+                                        toast(it.orEmpty().toList().toString())
+                                    }
                                 },
                                 content = { Text(text = "Get Instruments") }
                             )
@@ -251,8 +256,9 @@ class MainActivity : ComponentActivity() {
                                     contentColor = Color.White
                                 ),
                                 onClick = {
-                                    // TODO
-                                    toast("TODO: Get Info")
+                                    val info =  ViewerInfo()
+                                    Xmp.getInfo(info.values)
+                                    toast(info.toString())
                                 },
                                 content = { Text(text = "Get Info") }
                             )

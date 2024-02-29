@@ -9,16 +9,14 @@ object Xmp {
         System.loadLibrary("xmp-jni")
     }
 
-    // TODO handle informational functions that may return null
-
     external fun deInitPlayer()
     external fun endPlayer()
-    external fun getComment(): String
+    external fun getComment(): String?
     external fun getInfo(values: IntArray?)
     external fun getInstruments(): Array<String>?
     external fun getModVars(vars: IntArray?)
-    external fun getModuleName(): String
-    external fun getModuleType(): String
+    external fun getModuleName(): String?
+    external fun getModuleType(): String?
     external fun getSupportedFormats(): Array<String>?
     external fun getTime(): Int
     external fun getVersion(): String

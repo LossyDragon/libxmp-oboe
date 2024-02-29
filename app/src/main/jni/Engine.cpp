@@ -11,6 +11,7 @@ using namespace oboe;
 
 // Initialize the oboe engine and create a context for libxmp
 bool Engine::initPlayer(int sampleRate) {
+    std::lock_guard<std::mutex> lock(mLock);
 
     if (sampleRate != 8000 && sampleRate != 22050 && sampleRate != 44100 && sampleRate != 48000) {
         LOGD("%d is not a valid sample rate", sampleRate);
@@ -25,11 +26,7 @@ bool Engine::initPlayer(int sampleRate) {
             ->setSharingMode(SharingMode::Exclusive)
             ->setCallback(this);
 
-    if (stream != nullptr) {
-        delete stream;
-    }
-
-    Result resultStream = builder.openStream(&stream);
+    Result resultStream = builder.openStream(stream);
 
     if (Result::OK != resultStream) {
         LOGD("Unable to open stream");
@@ -68,10 +65,13 @@ bool Engine::initPlayer(int sampleRate) {
 void Engine::deInitPlayer() {
     stream->requestStop();
     stream->close();
+    stream.reset();
     xmp_free_context(ctx);
 }
 
 bool Engine::loadModule(int fd) {
+    std::lock_guard<std::mutex> lock(mLock);
+
     FILE *file = fdopen(fd, "r");
     if (file == NULL) {
         LOGD("Couldnt get file from fd");
@@ -118,6 +118,7 @@ bool Engine::startModule(int rate, int format) {
 }
 
 TickResult Engine::tick(bool shouldLoop) {
+    std::lock_guard<std::mutex> lock(mLock);
 
     if (!isLoaded) {
         LOGD("Not loaded in ::tick");
@@ -163,7 +164,7 @@ TickResult Engine::tick(bool shouldLoop) {
             LOGD("Waiting...");
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
-        // TODO: notify that we have finished playing, somehow.
+
         return TickResult::End;
     }
 
@@ -179,6 +180,9 @@ char *Engine::getModuleName() {
 }
 
 char *Engine::getModuleType() {
+    if (mi.mod == nullptr) {
+        return nullptr;
+    }
     return mi.mod->type;
 }
 
@@ -199,18 +203,26 @@ const char *Engine::getVersion() {
 }
 
 int Engine::getNumberOfInstruments() {
+    if (mi.mod == nullptr) {
+        return 0;
+    }
     return mi.mod->ins;
 }
 
 xmp_instrument *Engine::getInstruments() {
+    if (mi.mod == nullptr) {
+        return nullptr;
+    }
     return mi.mod->xxi;
 }
 
 int Engine::getTime() {
+    std::lock_guard<std::mutex> lock(mLock);
     return fi.time;
 }
 
 xmp_frame_info *Engine::getFrameInfo() {
+    std::lock_guard<std::mutex> lock(mLock);
     return &fi;
 }
 
@@ -219,6 +231,7 @@ void Engine::restartModule() {
 }
 
 bool Engine::pause(bool pause) {
+    std::lock_guard<std::mutex> lock(mLock);
     isPaused = pause;
     return isPaused;
 }
@@ -240,6 +253,7 @@ void Engine::endPlayer() {
 }
 
 bool Engine::setSequence(int seq) {
+    std::lock_guard<std::mutex> lock(mLock);
     if (seq >= mi.num_sequences)
         return false;
 
@@ -260,14 +274,15 @@ bool Engine::setSequence(int seq) {
 DataCallbackResult
 Engine::onAudioReady(AudioStream *audioStream, void *audioData, int32_t numFrames) {
     if (audioBuffer && !isPaused) {
-        float *outputData = static_cast<float *>(audioData);
+        int16_t *outputData = static_cast<int16_t *>(audioData); // 16-bit PCM
         size_t framesRead = audioBuffer->read(outputData, static_cast<size_t>(numFrames));
 
         if (framesRead < numFrames) {
+            // Fill the remaining frames with silence
             std::fill(outputData + framesRead, outputData + numFrames, 0.0f);
         }
     } else {
-        // Handle the case where audioBuffer is not initialized or paused.
+        // Silence - Handle if were paused or audioBuffer is null
         memset(audioData, 0, sizeof(float) * numFrames);
     }
 

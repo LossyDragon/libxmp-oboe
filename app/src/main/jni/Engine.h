@@ -21,10 +21,7 @@ public:
 
     Engine() : audioBuffer(nullptr) {};
 
-    ~Engine() {
-        audioBuffer.release();
-        delete stream;
-    };
+    virtual ~Engine() = default;
 
     DataCallbackResult
     onAudioReady(AudioStream *audioStream, void *audioData, int32_t numFrames) override;
@@ -74,15 +71,16 @@ public:
     xmp_module_info getModuleInfo();
 
 private:
-    AudioStream *stream;
+    std::mutex mLock;
+    std::shared_ptr<oboe::AudioStream> stream;
     std::unique_ptr<oboe::FifoBuffer> audioBuffer;
 
     bool isInit;    // Is Oboe and Xmp created?
     bool isLoaded;  // Is libxmp in a loaded state?
-    bool isPlaying; // Is libxmp ready to play?
     bool isPaused;  // Is the app calling for pause?
-    int sequence;   // Module sequence
+    bool isPlaying; // Is libxmp ready to play?
     bool moduleEnded; // Has the module finished playing once?
+    int sequence;   // Module sequence
 
     struct xmp_frame_info fi;
     struct xmp_module_info mi;
