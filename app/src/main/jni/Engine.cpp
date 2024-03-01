@@ -4,6 +4,8 @@
 #include <sys/stat.h>
 #include <thread>
 
+#define SLEEP 40
+
 // https://github.com/libxmp/libxmp/blob/master/docs/libxmp.rst
 // https://github.com/google/oboe
 
@@ -40,38 +42,40 @@ TickResult Engine::tick(bool shouldLoop) {
 
     if (!isPaused && !moduleEnded) {
         int res = xmp_play_frame(ctx);
-        if (res == 0) {
-            xmp_get_frame_info(ctx, &fi);
+        xmp_get_frame_info(ctx, &fi);
 
-            size_t bufferCapacity = audioBuffer->getBufferCapacityInFrames();
-            size_t availableSpace = bufferCapacity - audioBuffer->getFullFramesAvailable();
-
-            while (availableSpace < fi.buffer_size / sizeof(float)) {
-                LOGD("Waiting for buffer space...");
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                availableSpace = bufferCapacity - audioBuffer->getFullFramesAvailable();
-            }
-
-            audioBuffer->write(static_cast<float *>(fi.buffer), fi.buffer_size / sizeof(float));
-
-            //LOGD("%3d/%3d %3d/%3d | Loop: %d | Should Loop: %d\r",
-            //     fi.pos, mi.mod->len, fi.row, fi.num_rows, fi.loop_count, shouldLoop);
-
-            // TODO: If we 'shouldLoop' when we already looped more than once, honor it before finishing
-            if (fi.loop_count > 0 && !shouldLoop) {
-                moduleEnded = true;
-            }
-        } else {
+        if (res != 0) {
             LOGE("Couldn't play frame in ::tick");
             return TickResult::Fail;
         }
+
+        int numLoop = shouldLoop ? 0 : loopCount + 1;
+        if (numLoop > 0 && fi.loop_count >= numLoop) {
+            moduleEnded = true;
+        }
+
+        size_t bufferCapacity = audioBuffer->getBufferCapacityInFrames();
+        size_t availableSpace = bufferCapacity - audioBuffer->getFullFramesAvailable();
+
+        while (availableSpace < fi.buffer_size / sizeof(float)) {
+            // LOGD("Waiting for buffer space...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP));
+            availableSpace = bufferCapacity - audioBuffer->getFullFramesAvailable();
+        }
+
+        audioBuffer->write(static_cast<float *>(fi.buffer), fi.buffer_size / sizeof(float));
+
+        loopCount = fi.loop_count;
+
+        LOGD("%3d/%3d %3d/%3d | Loop: %d | Should Loop: %d\r",
+             fi.pos, mi.mod->len, fi.row, fi.num_rows, fi.loop_count, shouldLoop);
     }
 
     if (moduleEnded) {
         // Module has ended, just wait for the buffer to empty
         while (audioBuffer->getFullFramesAvailable() > 0) {
             LOGD("Waiting...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(SLEEP));
         }
 
         return TickResult::End;
@@ -180,7 +184,7 @@ bool Engine::loadModule(int fd) {
     xmp_get_module_info(ctx, &mi);
 
     isLoaded = xmp_get_player(ctx, XMP_STATE_LOADED);
-    LOGD("Loaded: $d -> %s (%s)\n", mi.mod->name, mi.mod->type);
+    LOGD("Loaded: %d -> %s (%s)\n", isLoaded, mi.mod->name, mi.mod->type);
 
     return isLoaded;
 }

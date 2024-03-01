@@ -23,6 +23,7 @@ android {
         ndk.abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         externalNativeBuild.cmake {
             arguments.add("-DANDROID_STL=c++_shared")
+            arguments.add("-DCMAKE_BUILD_TYPE=DEBUG") // (libxmp) RELEASE or DEBUG
         }
     }
 

@@ -50,16 +50,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private var isLooping: Boolean = false
+    private var isLooping by mutableStateOf(false)
 
     private val handler: Handler = Handler()
     private val runnable = object : Runnable {
         // This should be done in a service.
         override fun run() {
             val res = Xmp.tick(isLooping)
-            //Log.d(this::class.java.simpleName, "Tick $res")
 
-            if (res == 2){
+            if (res == 2) {
                 Xmp.endPlayer()
                 Xmp.releaseModule()
                 Xmp.deInitPlayer()
@@ -256,7 +255,7 @@ class MainActivity : ComponentActivity() {
                                     contentColor = Color.White
                                 ),
                                 onClick = {
-                                    val info =  ViewerInfo()
+                                    val info = ViewerInfo()
                                     Xmp.getInfo(info.values)
                                     toast(info.toString())
                                 },

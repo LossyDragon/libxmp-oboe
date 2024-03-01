@@ -82,6 +82,7 @@ private:
     bool isPlaying; // Is libxmp ready to play?
     bool moduleEnded; // Has the module finished playing once?
     int sequence;   // Module sequence
+    int loopCount; // Current loop count
 
     struct xmp_frame_info fi;
     struct xmp_module_info mi;
